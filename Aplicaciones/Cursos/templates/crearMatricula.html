@@ -1,0 +1,246 @@
+{% extends './plantilla.html' %}
+
+{% block contenido %}
+
+<div style="margin:auto; width:50%; padding:20px; border:1px solid #ccc;">
+    <h2 style="text-align:center;">Registrar Matricula</h2>
+    <br>
+
+    {% if error %}
+        <div class="alert alert-danger">
+            {{ error }}
+        </div>
+    {% endif %}
+
+    <!-- Mostrar errores del formulario si existen -->
+    {% if form.errors %}
+        <div class="alert alert-danger">
+            <ul>
+                {% for field, errors in form.errors.items %}
+                    {% for error in errors %}
+                        <li><strong>{{ field|title }}:</strong> {{ error }}</li>
+                    {% endfor %}
+                {% endfor %}
+            </ul>
+        </div>
+    {% endif %}
+
+    <form action="{% url 'crearMatricula' %}" method="post" id="frm_nueva_matricula">
+        {% csrf_token %}
+
+        <div class="mb-3">
+            <label class="form-label"><b>Nombre del estudiante:</b></label>
+            <input type="text" name="nombre_estudiante" id="nombre_estudiante"
+                   class="form-control"
+                   placeholder="Ingrese el nombre del estudiante"
+                   value="{{ form.nombre_estudiante.value|default:'' }}">
+            {% if form.nombre_estudiante.errors %}
+                <div class="text-danger">{{ form.nombre_estudiante.errors }}</div>
+            {% endif %}
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label"><b>Documento de identidad:</b></label>
+            <input type="text" name="documento_identidad" id="documento_identidad"
+                   class="form-control"
+                   placeholder="Ingrese el documento"
+                   value="{{ form.documento_identidad.value|default:'' }}">
+            {% if form.documento_identidad.errors %}
+                <div class="text-danger">{{ form.documento_identidad.errors }}</div>
+            {% endif %}
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label"><b>Fecha de matricula:</b></label>
+            <input type="date" name="fecha_matricula" id="fecha_matricula"
+                   class="form-control"
+                   value="{{ form.fecha_matricula.value|default:'' }}"
+                   max="{{ today|date:'Y-m-d' }}">
+            {% if form.fecha_matricula.errors %}
+                <div class="text-danger">{{ form.fecha_matricula.errors }}</div>
+            {% endif %}
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label"><b>Curso:</b></label>
+            <select name="curso" id="curso" class="form-control" required>
+                <option value="">-- Seleccione un curso --</option>
+                {% for curso in cursos %}
+                    <option value="{{ curso.id }}" 
+                        {% if form.curso.value|add:0 == curso.id %}selected{% endif %}
+                        data-cupos="{{ curso.cupos_disponibles }}">
+                        {{ curso.nombre }} (Cupos disponibles: {{ curso.cupos_disponibles }})
+                    </option>
+                {% endfor %}
+            </select>
+            {% if form.curso.errors %}
+                <div class="text-danger">{{ form.curso.errors }}</div>
+            {% endif %}
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label"><b>Instructor:</b></label>
+            <select name="instructor" id="instructor" class="form-control" required>
+                <option value="">-- Seleccione un Instructor --</option>
+                {% for instructor in instructores %}
+                    <option value="{{ instructor.id }}"
+                        {% if form.instructor.value|add:0 == instructor.id %}selected{% endif %}>
+                        {{ instructor.nombre }} {{ instructor.apellido }}
+                    </option>
+                {% endfor %}
+            </select>
+            {% if form.instructor.errors %}
+                <div class="text-danger">{{ form.instructor.errors }}</div>
+            {% endif %}
+        </div>
+
+        <div style="text-align:center;">
+            <button type="submit" class="btn btn-primary" style="padding:6px 20px;">
+                Guardar
+            </button>
+            <a href="{% url 'matriculas' %}" class="btn btn-danger" style="margin-left:10px;">
+                Cancelar y volver
+            </a>
+        </div>
+    </form>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script>
+$(document).ready(function(){
+    // Validación con jQuery Validate
+    $("#frm_nueva_matricula").validate({
+        rules: {
+            nombre_estudiante: {
+                required: true,
+                minlength: 3
+            },
+            documento_identidad: {
+                required: true,
+                digits: true,
+                minlength: 10,
+                maxlength: 10
+            },
+            fecha_matricula: {
+                required: true,
+                date: true
+            },
+            curso: {
+                required: true
+            },
+            instructor: {
+                required: true
+            }
+        },
+        messages: {
+            nombre_estudiante: {
+                required: "Ingrese el nombre del estudiante",
+                minlength: "El nombre debe tener al menos 3 caracteres"
+            },
+            documento_identidad: {
+                required: "Ingrese el documento de identidad",
+                digits: "Solo se permiten números",
+                minlength: "Debe tener 10 dígitos",
+                maxlength: "Debe tener 10 dígitos"
+            },
+            fecha_matricula: {
+                required: "Seleccione la fecha de matricula",
+                date: "Fecha no válida"
+            },
+            curso: {
+                required: "Seleccione un curso"
+            },
+            instructor: {
+                required: "Seleccione un instructor"
+            }
+        },
+        errorElement: 'div',
+        errorClass: 'text-danger',
+        errorPlacement: function(error, element) {
+            error.insertAfter(element);
+        },
+        highlight: function(element) {
+            $(element).addClass('is-invalid');
+        },
+        unhighlight: function(element) {
+            $(element).removeClass('is-invalid');
+        },
+        submitHandler: function(form) {
+            // Validar cupos antes de enviar
+            const cursoSelect = document.getElementById('curso');
+            const cuposDisponibles = cursoSelect.options[cursoSelect.selectedIndex]?.dataset.cupos;
+            
+            if (cuposDisponibles && parseInt(cuposDisponibles) <= 0) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'Este curso no tiene cupos disponibles',
+                    confirmButtonText: 'Aceptar'
+                });
+                return false;
+            }
+            
+            // Mostrar confirmación
+            Swal.fire({
+                title: '¿Guardar matrícula?',
+                text: "¿Está seguro de registrar esta matrícula?",
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#3085d6',
+                cancelButtonColor: '#d33',
+                confirmButtonText: 'Sí, guardar',
+                cancelButtonText: 'Cancelar'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    form.submit();
+                }
+            });
+            
+            return false;
+        }
+    });
+
+    // Validación en tiempo real para documento (solo números)
+    $('#documento_identidad').on('input', function() {
+        this.value = this.value.replace(/[^0-9]/g, '');
+    });
+
+    // Validación en tiempo real para nombre (solo letras y espacios)
+    $('#nombre_estudiante').on('input', function() {
+        this.value = this.value.replace(/[^A-Za-zÁÉÍÓÚáéíóúÑñ\s]/g, '');
+    });
+
+    // Deshabilitar fechas futuras
+    const today = new Date().toISOString().split('T')[0];
+    $('#fecha_matricula').attr('max', today);
+});
+</script>
+<style>
+.form-control.is-invalid {
+    border-color: #dc3545;
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12' width='12' height='12' fill='none' stroke='%23dc3545'%3e%3ccircle cx='6' cy='6' r='4.5'/%3e%3cpath stroke-linejoin='round' d='M5.8 3.6h.4L6 6.5z'/%3e%3ccircle cx='6' cy='8.2' r='.6' fill='%23dc3545' stroke='none'/%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right calc(0.375em + 0.1875rem) center;
+    background-size: calc(0.75em + 0.375rem) calc(0.75em + 0.375rem);
+}
+
+.form-control.is-invalid:focus {
+    border-color: #dc3545;
+    box-shadow: 0 0 0 0.25rem rgba(220, 53, 69, 0.25);
+}
+
+select.form-control.is-invalid {
+    background-position: right 1.75rem center;
+    padding-right: 2.5rem;
+}
+
+.invalid-feedback {
+    display: block;
+    width: 100%;
+    margin-top: 0.25rem;
+    font-size: 0.875em;
+    color: #dc3545;
+}
+</style>
+
+{% endblock %}

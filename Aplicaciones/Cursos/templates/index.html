@@ -1,0 +1,152 @@
+{% extends './plantilla.html' %}
+{% block contenido %}
+
+<div class="container mt-4">
+    <h1 class="mb-3">Listado de Cursos</h1>
+
+    <a href="{% url 'crearCurso' %}" class="btn btn-primary mb-3">
+        <i class="fa fa-plus"></i> Agregar Curso
+    </a>
+
+    <table class="table table-bordered table-striped table-hover" id="tbl_cursos">
+        <thead class="table-dark text-center">
+            <tr>
+                <th>ID</th>
+                <th>Nombre</th>
+                <th>Area</th>
+                <th>Duracion (horas)</th>
+                <th>Cupo maximo</th>
+                <th>Instructor</th>
+                <th>Estado</th>
+                <th>Acciones</th>
+            </tr>
+        </thead>
+
+        <tbody>
+            {% for c in cursos %}
+            <tr>
+                <td class="text-center">{{ c.id }}</td>
+                <td>{{ c.nombre }}</td>
+                <td>{{ c.get_area_display }}</td>
+                <td >{{ c.duracion_horas }}</td>
+                <td >{{ c.cupo_maximo }}</td>
+                <td >{{ c.instructor.nombre }}</td>
+                <td >
+                    {% if c.estado == 'ACT' %}
+                        <span class="badge bg-success">Activo</span>
+                    {% else %}
+                        <span class="badge bg-danger">Inactivo</span>
+                    {% endif %}
+                </td>
+
+                <td class="text-center">
+                    <a href="{% url 'editarCurso' c.id %}"
+                       class="btn btn-outline-warning btn-sm me-1">
+                        <i class="fa fa-pen"></i>
+                    </a>
+
+                    <a href="{% url 'eliminarCurso' c.id %}"
+                       class="btnEliminar btn btn-outline-danger btn-sm">
+                        <i class="fa fa-trash"></i>
+                    </a>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<!-- ===== ESTILOS BOTONES DATATABLE ===== -->
+<style>
+.dt-buttons {
+    margin-bottom: 15px;
+}
+
+.dt-buttons .btn {
+    font-weight: 600;
+    color: #000 !important;
+    border-radius: 8px;
+    padding: 6px 14px;
+    box-shadow: 0 2px 6px rgba(0,0,0,.15);
+}
+
+.btn-copy {
+    background-color: #bdbdbd !important;
+    border: 1px solid #9e9e9e;
+}
+
+.btn-csv {
+    background-color: #4fc3f7 !important;
+    border: 1px solid #039be5;
+}
+
+.btn-excel {
+    background-color: #66bb6a !important;
+    border: 1px solid #2e7d32;
+}
+
+.btn-pdf {
+    background-color: #e57373 !important;
+    border: 1px solid #c62828;
+}
+
+.btn-print {
+    background-color: #ffca28 !important;
+    border: 1px solid #f9a825;
+}
+
+.dt-buttons .btn:hover {
+    filter: brightness(0.9);
+    transform: translateY(-2px);
+}
+</style>
+
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    document.querySelectorAll(".btnEliminar").forEach(boton => {
+        boton.addEventListener("click", function (e) {
+            e.preventDefault();
+            const url = this.getAttribute("href");
+
+            Swal.fire({
+                title: "Estas seguro?",
+                text: "Una vez eliminado no hay vuelta atras",
+                icon: "warning",
+                showCancelButton: true,
+                confirmButtonColor: "#3085d6",
+                cancelButtonColor: "#d33",
+                confirmButtonText: "Si, eliminar",
+                cancelButtonText: "Cancelar"
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    window.location.href = url;
+                }
+            });
+        });
+    });
+});
+</script>
+
+<!-- ===== DATATABLE ===== -->
+<script>
+$(document).ready(function () {
+    new DataTable('#tbl_cursos', {
+        language: { 
+            url: 'https://cdn.datatables.net/plug-ins/2.3.1/i18n/es-ES.json' 
+        },
+        dom: 'lBfrtip',
+        pageLength: 5,
+        buttons: [
+            { extend: 'copy', text: 'Copiar', className: 'btn-copy me-2' },
+            { extend: 'csv', text: 'CSV', className: 'btn-csv me-2' },
+            { extend: 'excel', text: 'Excel', className: 'btn-excel me-2' },
+            { extend: 'pdf', text: 'PDF', className: 'btn-pdf me-2' },
+            { extend: 'print', text: 'Imprimir', className: 'btn-print me-2' }
+        ]
+    });
+});
+</script>
+
+{% endblock %}
+
